@@ -1,0 +1,6 @@
+node_modules/
+out/
+frontend/.next/
+frontend/.env.local
+.env
+*.log
