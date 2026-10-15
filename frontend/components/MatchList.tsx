@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useReadContracts } from "wagmi";
 import { Alert, Box, Button, Typography } from "@mui/material";
-import { AXEL_ABI, AXEL_ADDRESS, type Fsm } from "../lib/arc";
+import { AXEL_ABI, type Fsm } from "../lib/arc";
 import { MONO, DISPLAY } from "../lib/theme";
 import { matchPairs, simulateMatch } from "../lib/replay";
 import Avatar from "./Avatar";
@@ -31,11 +31,13 @@ function toFsm(raw: readonly unknown[]): Fsm | null {
 /** Match cards (reference style) + click-to-watch deterministic replays. */
 export default function MatchList({
   tid,
+  hub,
   revealers,
   numRounds,
   chainScores,
 }: {
   tid: number;
+  hub: `0x${string}`;
   revealers: `0x${string}`[];
   numRounds: number;
   /** On-chain totals per player (cross-checked against replay sims). */
@@ -52,12 +54,14 @@ export default function MatchList({
 
   const stratQ = useReadContracts({
     contracts: revealers.map((addr) => ({
-      address: AXEL_ADDRESS,
+      address: hub,
       abi: AXEL_ABI,
       functionName: "getStrategy",
       args: [BigInt(tid), addr],
     })),
   });
+  const stratError = stratQ.error;
+  const stratRetry = stratQ.refetch;
 
   const fsms: (Fsm | null)[] = useMemo(
     () =>
@@ -97,8 +101,21 @@ export default function MatchList({
   return (
     <Box sx={{ mt: 3 }}>
       <Typography variant="h6" gutterBottom>Matches</Typography>
-      {!ready && (
+      {!ready && !stratError && (
         <Typography variant="body2" color="text.secondary">Loading strategies…</Typography>
+      )}
+      {stratError && (
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={() => stratRetry()}>
+              Retry
+            </Button>
+          }
+        >
+          Couldn&apos;t load strategies: {String(stratError.message ?? stratError).slice(0, 160)}
+        </Alert>
       )}
       {mismatch && (
         <Alert severity="warning" sx={{ mb: 2 }}>

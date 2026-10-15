@@ -727,6 +727,7 @@ export default function Home() {
               {exists && T.revealers.length >= 2 && (
                 <MatchList
                   tid={tid}
+                  hub={hub}
                   revealers={T.revealers}
                   numRounds={Number(T.numRounds)}
                   chainScores={new Map(rows.map((r) => [r.addr, r.pts]))}
