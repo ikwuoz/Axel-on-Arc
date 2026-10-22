@@ -14,14 +14,33 @@ export function tinyAddr(a: string) {
   return a ? a.slice(0, 4) + "…" : "—";
 }
 
-function toFsm(raw: readonly unknown[]): Fsm | null {
+function toFsm(raw: unknown): Fsm | null {
   try {
-    const [a, c, d] = raw as [readonly unknown[], readonly unknown[], readonly unknown[]];
-    if (!a || a.length === 0) return null;
+    // wagmi/viem may return either a tuple [actions, transitionsC, transitionsD]
+    // or an object { actions, transitionsC, transitionsD }
+    let actions: readonly unknown[];
+    let transitionsC: readonly unknown[];
+    let transitionsD: readonly unknown[];
+
+    if (Array.isArray(raw)) {
+      const [a, c, d] = raw as [readonly unknown[], readonly unknown[], readonly unknown[]];
+      actions = a;
+      transitionsC = c;
+      transitionsD = d;
+    } else if (raw && typeof raw === 'object') {
+      const obj = raw as { actions?: unknown; transitionsC?: unknown; transitionsD?: unknown };
+      actions = (obj.actions as readonly unknown[]) ?? [];
+      transitionsC = (obj.transitionsC as readonly unknown[]) ?? [];
+      transitionsD = (obj.transitionsD as readonly unknown[]) ?? [];
+    } else {
+      return null;
+    }
+
+    if (!actions || actions.length === 0) return null;
     return {
-      actions: a.map(Number),
-      transitionsC: c.map(Number),
-      transitionsD: d.map(Number),
+      actions: actions.map(Number),
+      transitionsC: transitionsC.map(Number),
+      transitionsD: transitionsD.map(Number),
     };
   } catch {
     return null;
